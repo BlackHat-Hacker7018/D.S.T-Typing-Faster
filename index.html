@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>D.S.T Typing Faster</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      background: #0f0f0f;
+      margin: 0;
+      padding: 0;
+      color: #f9f9f9;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    header {
+      background: #4f46e5;
+      color: white;
+      padding: 20px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    main {
+      max-width: 900px;
+      margin: 30px auto;
+      padding: 30px;
+      background: #1a1a1a;
+      border-radius: 12px;
+      box-shadow: 0 3px 12px rgba(0,0,0,0.5);
+    }
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    select, button {
+      padding: 8px 14px;
+      font-size: 15px;
+      border-radius: 6px;
+      border: none;
+      background: #2d2d2d;
+      color: #fff;
+      cursor: pointer;
+    }
+    button:hover, select:hover {
+      background: #4f46e5;
+    }
+    #timer {
+      margin-left: auto;
+      font-weight: bold;
+      color: #facc15;
+    }
+    .words {
+      padding: 20px;
+      font-size: 22px;
+      line-height: 1.8;
+      background: #111;
+      border-radius: 8px;
+      min-height: 200px;
+      max-height: 300px;
+      overflow-y: auto;
+      user-select: none;
+    }
+    .word {
+      margin: 0 6px;
+      color: #aaa;
+    }
+    .final-good { color: #22c55e; font-weight: 500; }
+    .final-bad { color: #ef4444; font-weight: 500; }
+    .current { border-bottom: 2px solid #facc15; font-weight: bold; }
+    .char-correct { color: #facc15; }
+    .char-wrong { color: #ef4444; text-decoration: underline; }
+    #input {
+      opacity: 0;
+      position: absolute;
+      left: -9999px;
+    }
+    .result {
+      margin-top: 20px;
+      font-size: 18px;
+      font-weight: bold;
+      white-space: pre-line;
+    }
+    table {
+      border-collapse: collapse;
+      margin-top: 15px;
+      width: 100%;
+    }
+    th, td {
+      border: 1px solid #333;
+      padding: 8px;
+      text-align: left;
+    }
+    th { background: #222; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>D.S.T Typing Faster</h1>
+    <p>Practice typing speed with endless common English words</p>
+	<p>Created By Dev Singh Tomar</p>
+  </header>
+  <main>
+    <div id="testSection">
+      <div class="controls">
+        <label for="timeLimit">Select Time:</label>
+        <select id="timeLimit">
+          <option value="30">30 sec</option>
+          <option value="60" selected>1 min</option>
+          <option value="120">2 min</option>
+          <option value="300">5 min</option>
+          <option value="600">10 min</option>
+          <option value="1800">30 min</option>
+        </select>
+        <label for="difficulty">Difficulty:</label>
+        <select id="difficulty">
+          <option value="easy">Easy</option>
+          <option value="normal" selected>Normal</option>
+          <option value="hard">Hard</option>
+          <option value="insane">Insane</option>
+        </select>
+        <button onclick="prepareTest()">Start Test</button>
+        <span id="timer">Time: 0</span>
+      </div>
+
+      <div class="words" id="wordContainer">Click start to see words...</div>
+      <input id="input" autocomplete="off"/>
+    </div>
+
+    <div id="resultSection" class="hidden">
+      <h2>Result</h2>
+      <p id="summary"></p>
+      <div id="mistakes"></div>
+      <button onclick="restartTest()">Restart Test</button>
+    </div>
+  </main>
+
+  <script>
+    const WORDS = {
+      easy: ["the","be","to","of","and","a","in","that","have","I","it","for","not","on","with","he","as","you","do","at"],
+      normal: ["this","but","his","by","from","they","we","say","her","she","or","an","will","my","one","all","would","there","their","what","so","up","out","if","about","who","get","which","go","me","when","make","can","like","time","no","just","him","know","take","people","into","year","your","good","some","could","them","see","other","than","then","now","look","only","come","its","over","think","also","back","after","use","two","how","our","work","first","well","way","even","new","want","because","any","these","give","day","most","us"],
+      hard: ["consider","process","important","example","provide","different","increase","without","include","available","understand","function","experience","system","problem","between","general","computer","against","service","research","possible","education","language","throughout","development","technology"],
+      insane: ["characteristically","uncharacteristically","counterproductive","interdisciplinary","disproportionately","misinterpretation","conceptualization","thermodynamics","responsibilities","transcontinental","microarchitecture","incompatibility","indistinguishable","psychophysiology","hypermetropia","philanthropist","electroencephalogram","misrepresentation","cryptocurrency","contradictory","acknowledgement","institutionalization"]
+    };
+
+    let words = [];
+    let timer = null;
+    let timeLeft = 0;
+    let isRunning = false;
+    let started = false;
+    let currentIndex = 0;
+    let highlights = [];
+    let mistakes = [];
+    let currentTyped = "";
+
+    function getRandomWord(difficulty) {
+      const pool = WORDS[difficulty];
+      return pool[Math.floor(Math.random() * pool.length)];
+    }
+
+    function generateWords(difficulty, count=200) {
+      let arr = [];
+      for (let i=0; i<count; i++) {
+        arr.push(getRandomWord(difficulty));
+      }
+      return arr;
+    }
+
+    function refillWordsIfNeeded(difficulty) {
+      if (currentIndex + 50 > words.length) {
+        words = words.concat(generateWords(difficulty, 200));
+      }
+    }
+
+    function renderWords() {
+      const container = document.getElementById("wordContainer");
+      container.innerHTML = words.map((w, i) => {
+        let cls = "word";
+        if (highlights[i] === true) cls = "word final-good";
+        else if (highlights[i] === false) cls = "word final-bad";
+        if (i === currentIndex) {
+          cls += " current";
+          let chars = "";
+          for (let c = 0; c < w.length; c++) {
+            if (c < currentTyped.length) {
+              if (currentTyped[c] === w[c]) {
+                chars += `<span class='char-correct'>${w[c]}</span>`;
+              } else {
+                chars += `<span class='char-wrong'>${w[c]}</span>`;
+              }
+            } else {
+              chars += `<span>${w[c]}</span>`;
+            }
+          }
+          return `<span class='${cls}'>${chars}</span>`;
+        }
+        return `<span class='${cls}'>${w}</span>`;
+      }).join(" ");
+
+      const current = container.querySelector(".current");
+      if (current) {
+        current.scrollIntoView({ block: "center", behavior: "smooth" });
+      }
+    }
+
+    function prepareTest() {
+      const difficulty = document.getElementById("difficulty").value;
+      words = generateWords(difficulty, 300);
+      highlights = [];
+      mistakes = [];
+      currentIndex = 0;
+      currentTyped = "";
+      renderWords();
+      document.getElementById("input").value = "";
+      document.getElementById("input").disabled = false;
+      document.getElementById("input").focus();
+      document.getElementById("resultSection").classList.add("hidden");
+      document.getElementById("testSection").classList.remove("hidden");
+
+      timeLeft = parseInt(document.getElementById("timeLimit").value);
+      document.getElementById("timer").innerText = "Time: " + timeLeft;
+      isRunning = false;
+      started = false;
+      if (timer) clearInterval(timer);
+    }
+
+    function startTimer() {
+      if (started) return;
+      started = true;
+      isRunning = true;
+      timer = setInterval(() => {
+        if (timeLeft > 0) {
+          timeLeft--;
+          document.getElementById("timer").innerText = "Time: " + timeLeft;
+        } else {
+          finishTest();
+        }
+      }, 1000);
+    }
+
+    function getGrade(accuracy) {
+      if (accuracy <= 40) return "Poor";
+      if (accuracy <= 60) return "Average";
+      if (accuracy <= 75) return "Good";
+      if (accuracy <= 90) return "Very Good";
+      return "Excellent";
+    }
+
+    function finishTest() {
+      clearInterval(timer);
+      isRunning = false;
+      document.getElementById("input").disabled = true;
+
+      const typedCount = highlights.filter(h => h !== undefined).length;
+      const correctCount = highlights.filter(h => h === true).length;
+      const acc = typedCount > 0 ? Math.round((correctCount / typedCount) * 100) : 0;
+      const minutes = parseInt(document.getElementById("timeLimit").value) / 60;
+      const wpm = Math.round(correctCount / minutes);
+      const grade = getGrade(acc);
+
+      document.getElementById("testSection").classList.add("hidden");
+      document.getElementById("resultSection").classList.remove("hidden");
+
+      document.getElementById("summary").innerText = `WPM: ${wpm}\nAccuracy: ${acc}%\nGrade: ${grade}`;
+
+      if (mistakes.length > 0) {
+        let table = `<table><tr><th>#</th><th>Expected</th><th>Your Input</th></tr>`;
+        mistakes.forEach((m, i) => {
+          table += `<tr><td>${i + 1}</td><td>${m.expected}</td><td>${m.got}</td></tr>`;
+        });
+        table += `</table>`;
+        document.getElementById("mistakes").innerHTML = `<h3>Mistakes:</h3>${table}`;
+      } else {
+        document.getElementById("mistakes").innerHTML = `<p>No mistakes 🎉 Excellent!</p>`;
+      }
+    }
+
+    function restartTest() {
+      document.getElementById("resultSection").classList.add("hidden");
+      prepareTest();
+    }
+
+    document.getElementById("input").addEventListener("input", (e) => {
+      if (!isRunning) startTimer();
+      currentTyped = e.target.value;
+      renderWords();
+    });
+
+    document.getElementById("input").addEventListener("keydown", (e) => {
+      if (e.key === " ") {
+        e.preventDefault();
+        const difficulty = document.getElementById("difficulty").value;
+        let typedWord = document.getElementById("input").value.trim();
+        if (typedWord.length > 0) {
+          if (typedWord === words[currentIndex]) {
+            highlights[currentIndex] = true;
+          } else {
+            highlights[currentIndex] = false;
+            mistakes.push({ expected: words[currentIndex], got: typedWord });
+          }
+          currentIndex++;
+          refillWordsIfNeeded(difficulty);
+          currentTyped = "";
+          document.getElementById("input").value = "";
+          renderWords();
+        }
+      }
+    });
+
+    renderWords();
+  </script>
+</body>
+</html>
