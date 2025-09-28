@@ -103,7 +103,7 @@
   <header>
     <h1>D.S.T Typing Faster</h1>
     <p>Practice typing speed with endless common English words</p>
-	<p>Created By Dev Singh Tomar</p>
+    <p>Created By Dev Singh Tomar</p>
   </header>
   <main>
     <div id="testSection">
@@ -201,11 +201,7 @@
         }
         return `<span class='${cls}'>${w}</span>`;
       }).join(" ");
-
-      const current = container.querySelector(".current");
-      if (current) {
-        current.scrollIntoView({ block: "center", behavior: "smooth" });
-      }
+      // 🔥 Shake fix: scrollIntoView removed
     }
 
     function prepareTest() {
